@@ -9,6 +9,7 @@ import { formatDateTime } from "@/lib/time";
 import { bookSessionAction, cancelBookingAction } from "@/lib/actions/project-actions";
 
 const RESERVED = new Set<BookingStatus>([BookingStatus.BOOKED, BookingStatus.ATTENDED]);
+const ACTIVE_PARTICIPATION = new Set<BookingStatus>([BookingStatus.BOOKED, BookingStatus.WAITLISTED, BookingStatus.ATTENDED]);
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireUser();
@@ -57,7 +58,7 @@ async function StudentDashboard({ user }: { user: Awaited<ReturnType<typeof requ
       {projects.length === 0 ? <section className="card empty">There are no open studies with future sessions at present.</section> : projects.map((project) => <section key={project.id} className="card">
         <div className="card-header"><div><h2>{project.title}</h2><p>{project.description}</p></div><span className="badge info">{project.points} points</span></div>
         <div className="stack">{(() => {
-          const myProjectBooking = project.sessions.flatMap((s) => s.bookings).find((b) => b.studentId === user.id && [BookingStatus.BOOKED, BookingStatus.WAITLISTED, BookingStatus.ATTENDED].includes(b.status));
+          const myProjectBooking = project.sessions.flatMap((s) => s.bookings).find((b) => b.studentId === user.id && ACTIVE_PARTICIPATION.has(b.status));
           return project.sessions.map((session) => {
             const mine = session.bookings.find((b) => b.studentId === user.id);
             const used = session.bookings.filter((b) => RESERVED.has(b.status)).length;
@@ -89,7 +90,7 @@ async function StaffDashboard({ user }: { user: Awaited<ReturnType<typeof requir
     <div className="grid cols-2">
       {projects.length === 0 ? <section className="card empty">No studies yet. Create the first one.</section> : projects.map((project) => {
         const participants = new Set(project.sessions.flatMap((s) => s.bookings.filter((b) => b.status === BookingStatus.ATTENDED).map((b) => b.studentId))).size;
-        const booked = project.sessions.reduce((sum, s) => sum + s.bookings.filter((b) => [BookingStatus.BOOKED, BookingStatus.ATTENDED].includes(b.status)).length, 0);
+        const booked = project.sessions.reduce((sum, s) => sum + s.bookings.filter((b) => RESERVED.has(b.status)).length, 0);
         return <Link key={project.id} href={`/projects/${project.id}`} className="card" style={{ color: "inherit" }}><div className="card-header"><div><h2>{project.title}</h2><p className="muted">{user.role === UserRole.ADMIN ? `Owner: ${project.owner.name} · ` : ""}{project.sessions.length} session{project.sessions.length === 1 ? "" : "s"} · {booked} booked</p></div><StatusBadge value={project.status} /></div><div className="inline"><span className="badge info">{project.points} points</span><span className="badge">{participants} attended / target {project.recruitmentTarget}</span></div></Link>;
       })}
     </div>
