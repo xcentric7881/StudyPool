@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  STAFF
+  ADMIN
+}
+
+enum StudyStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum BookingStatus {
+  BOOKED
+  WAITLISTED
+  ATTENDED
+  NO_SHOW
+  CANCELLED
+}
+
+model RosterPerson {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole
+  cohort    String?
+  active    Boolean  @default(true)
+  user      User?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id               String       @id @default(cuid())
+  email            String       @unique
+  name             String
+  role             UserRole
+  rosterPersonId   String       @unique
+  rosterPerson     RosterPerson @relation(fields: [rosterPersonId], references: [id])
+  authSessions     AuthSession[]
+  projects         Project[]    @relation("ProjectOwner")
+  bookings         Booking[]    @relation("StudentBookings")
+  attendanceMarks  Booking[]    @relation("AttendanceMarker")
+  auditLogs        AuditLog[]   @relation("AuditActor")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model AuthSession {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AcademicYear {
+  id                  String         @id @default(cuid())
+  label               String         @unique
+  startsOn            DateTime
+  endsOn              DateTime
+  defaultTargetPoints Int
+  active               Boolean        @default(false)
+  projects             Project[]
+  cohortTargets        CohortTarget[]
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+}
+
+model CohortTarget {
+  id             String       @id @default(cuid())
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  cohort         String
+  targetPoints   Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  @@unique([academicYearId, cohort])
+}
+
+model Project {
+  id                String              @id @default(cuid())
+  title             String
+  description       String
+  points            Int                 @default(10)
+  recruitmentTarget Int
+  startsOn          DateTime?
+  endsOn            DateTime?
+  status            StudyStatus         @default(DRAFT)
+  ownerId           String
+  owner             User                @relation("ProjectOwner", fields: [ownerId], references: [id])
+  academicYearId    String
+  academicYear      AcademicYear        @relation(fields: [academicYearId], references: [id])
+  sessions          ExperimentSession[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  @@index([ownerId])
+  @@index([academicYearId])
+  @@index([status])
+}
+
+model ExperimentSession {
+  id        String    @id @default(cuid())
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  startsAt  DateTime
+  endsAt    DateTime
+  capacity  Int
+  location  String?
+  bookings  Booking[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  @@index([projectId])
+  @@index([startsAt])
+}
+
+model Booking {
+  id                   String             @id @default(cuid())
+  sessionId            String
+  session              ExperimentSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId            String
+  student              User               @relation("StudentBookings", fields: [studentId], references: [id])
+  status               BookingStatus
+  bookedAt             DateTime           @default(now())
+  cancelledAt          DateTime?
+  cancellationReason   String?
+  attendanceMarkedAt   DateTime?
+  attendanceMarkedById String?
+  attendanceMarkedBy   User?              @relation("AttendanceMarker", fields: [attendanceMarkedById], references: [id])
+  pointsAwarded        Int                @default(0)
+  updatedAt            DateTime           @updatedAt
+  @@unique([sessionId, studentId])
+  @@index([studentId])
+  @@index([sessionId, status])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+model RosterUpload {
+  id            String   @id @default(cuid())
+  filename      String
+  uploadedBy    String
+  importedCount Int
+  createdAt     DateTime @default(now())
+}

@@ -1,0 +1,5 @@
+name,email,status,admin,cohort
+Alex Admin,alex.admin@example.ac.uk,staff,yes,staff
+Sam Researcher,sam.researcher@example.ac.uk,staff,no,staff
+Jamie Student,jamie.student@example.ac.uk,student,no,2026
+Taylor Student,taylor.student@example.ac.uk,student,no,2026

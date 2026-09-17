@@ -1,0 +1,34 @@
+{
+  "name": "studypool",
+  "version": "0.2.0-prototype",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "roster:import": "tsx scripts/import-roster.ts",
+    "prototype:seed": "tsx scripts/seed-prototype.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.14.0",
+    "csv-parse": "^5.6.0",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "next": "^15.5.0",
+    "prisma": "^6.14.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tsx": "^4.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.0"
+  }
+}
