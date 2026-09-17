@@ -4,7 +4,7 @@ StudyPool is a prototype experiment-participation system for matching students t
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/xcentric7881/StudyPool)
 
-This repository is deliberately the **prototype/test deployment**. It is configured for a free Render web service and a free Render Postgres database. **Use synthetic data only.** The Render free database expires after 30 days and has no backups.
+This repository is deliberately the **prototype/test deployment**. It is configured as a single free Render Node web service using a local SQLite database. **Use synthetic data only.** The SQLite file lives on Render's ephemeral filesystem, so prototype data can be lost when the service is redeployed or replaced.
 
 ## What is in the prototype
 
@@ -24,9 +24,10 @@ There is no email or real-user authentication service in this branch. To keep th
 - no real credentials are collected; the login screen offers four fixed synthetic demo roles;
 - email ownership verification and password reset are omitted;
 - 3-day/day-of reminder emails are omitted;
-- waiting-list promotion is automatic rather than emailed/accepted.
+- waiting-list promotion is automatic rather than emailed/accepted;
+- PostgreSQL is replaced by SQLite for the temporary Render build.
 
-The production design retains roster-based email claiming, password login and transactional reminders. These prototype changes do not alter the core Project / Session / Booking / points model.
+The production design retains roster-based email claiming, password login, transactional reminders and PostgreSQL. These prototype changes do not alter the core Project / Session / Booking / points model.
 
 ## Seeded test roster
 
@@ -43,21 +44,13 @@ Open the site and choose one of these roles on the prototype sign-in screen. No 
 
 ## Deploy to Render
 
-Click the **Deploy to Render** button above, review the free web service and free PostgreSQL database, and approve the Blueprint. The root `render.yaml` creates:
+The root `render.yaml` creates one free Node web service in Frankfurt. It sets `DATABASE_URL=file:./studypool.db`, synchronises the schema with `prisma db push`, seeds the synthetic roster on start, and exposes `/api/health` for checking the deployment.
 
-1. a free Node web service in Frankfurt;
-2. a free PostgreSQL database in Frankfurt;
-3. the private `DATABASE_URL` wiring between them;
-4. schema synchronisation and prototype roster seeding on start;
-5. `/api/health` as the health check.
-
-No application secrets are required for this prototype.
-
-Render's free web service can sleep after inactivity and take roughly a minute to wake. The free Postgres database expires 30 days after creation. It is therefore suitable for this prototype, not for real participant data or operational deployment.
+No application secrets are required for this prototype. Render's free web service can sleep after inactivity and take roughly a minute to wake. The local SQLite database is intentionally disposable and is **not** suitable for real participant data or operational deployment.
 
 ## Local development
 
-Create a PostgreSQL database, copy `.env.example` to `.env`, then:
+Copy `.env.example` to `.env`, then:
 
 ```bash
 npm install
