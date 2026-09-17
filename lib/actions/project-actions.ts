@@ -9,6 +9,10 @@ import { db } from "@/lib/db";
 import { localDateTimeToUtc } from "@/lib/time";
 import { promoteNextWaitlisted } from "@/lib/waitlist";
 
+const RESERVED_STATUSES = new Set<BookingStatus>([BookingStatus.BOOKED, BookingStatus.ATTENDED]);
+const CANCELLABLE_STATUSES = new Set<BookingStatus>([BookingStatus.BOOKED, BookingStatus.WAITLISTED]);
+const ATTENDANCE_STATUSES = new Set<BookingStatus>([BookingStatus.BOOKED, BookingStatus.ATTENDED, BookingStatus.NO_SHOW]);
+
 async function serializable<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
@@ -99,7 +103,7 @@ export async function bookSessionAction(sessionId: string) {
       }
     });
     if (existingProjectBooking) return { error: "You already have a session selected for that study." } as const;
-    const reserved = session.bookings.filter((b) => [BookingStatus.BOOKED, BookingStatus.ATTENDED].includes(b.status)).length;
+    const reserved = session.bookings.filter((b) => RESERVED_STATUSES.has(b.status)).length;
     const status = reserved < session.capacity ? BookingStatus.BOOKED : BookingStatus.WAITLISTED;
     const booking = await tx.booking.upsert({
       where: { sessionId_studentId: { sessionId, studentId: user.id } },
@@ -119,7 +123,7 @@ export async function cancelBookingAction(bookingId: string, formData: FormData)
   if (!reason) redirect("/dashboard?error=Please+give+a+brief+reason+for+cancelling.");
   const booking = await db.booking.findUnique({ where: { id: bookingId }, include: { session: true } });
   if (!booking || booking.studentId !== user.id) redirect("/dashboard");
-  if (![BookingStatus.BOOKED, BookingStatus.WAITLISTED].includes(booking.status)) redirect("/dashboard?error=That+booking+cannot+be+cancelled.");
+  if (!CANCELLABLE_STATUSES.has(booking.status)) redirect("/dashboard?error=That+booking+cannot+be+cancelled.");
   const wasReserved = booking.status === BookingStatus.BOOKED;
   await db.booking.update({ where: { id: booking.id }, data: { status: BookingStatus.CANCELLED, cancelledAt: new Date(), cancellationReason: reason, pointsAwarded: 0 } });
   await audit(user.id, "BOOKING_CANCELLED", "Booking", booking.id, { reason });
@@ -131,11 +135,11 @@ export async function cancelBookingAction(bookingId: string, formData: FormData)
 
 export async function markAttendanceAction(bookingId: string, status: BookingStatus) {
   const user = await requireRole(UserRole.STAFF, UserRole.ADMIN);
-  if (![BookingStatus.ATTENDED, BookingStatus.NO_SHOW, BookingStatus.BOOKED].includes(status)) redirect("/dashboard");
+  if (!ATTENDANCE_STATUSES.has(status)) redirect("/dashboard");
   const booking = await db.booking.findUnique({ where: { id: bookingId }, include: { session: { include: { project: true } } } });
   if (!booking) redirect("/dashboard");
   if (user.role !== UserRole.ADMIN && booking.session.project.ownerId !== user.id) redirect("/dashboard");
-  if (![BookingStatus.BOOKED, BookingStatus.ATTENDED, BookingStatus.NO_SHOW].includes(booking.status)) redirect(`/projects/${booking.session.project.id}?error=Attendance+can+only+be+recorded+for+confirmed+participants.`);
+  if (!ATTENDANCE_STATUSES.has(booking.status)) redirect(`/projects/${booking.session.project.id}?error=Attendance+can+only+be+recorded+for+confirmed+participants.`);
   const pointsAwarded = status === BookingStatus.ATTENDED ? booking.session.project.points : 0;
   await db.booking.update({
     where: { id: booking.id },
