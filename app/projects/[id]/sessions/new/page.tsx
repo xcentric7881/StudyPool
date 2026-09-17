@@ -1,6 +1,7 @@
 import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
+import { SessionTimeFields } from "@/components/SessionTimeFields";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { addSessionAction } from "@/lib/actions/project-actions";
@@ -17,8 +18,7 @@ export default async function NewSessionPage({ params, searchParams }: { params:
     <section className="card narrow stack">
       {error && <div className="notice error">{error}</div>}
       <form action={addSessionAction.bind(null, project.id)} className="form-grid">
-        <label>Starts<input name="startsAt" type="datetime-local" required /></label>
-        <label>Ends<input name="endsAt" type="datetime-local" required /></label>
+        <SessionTimeFields />
         <label>Capacity<input name="capacity" type="number" min="1" required /></label>
         <label>Location <small>Optional</small><input name="location" maxLength={250} /></label>
         <div className="full"><button type="submit">Add session</button></div>
