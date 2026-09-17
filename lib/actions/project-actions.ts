@@ -69,6 +69,7 @@ export async function addSessionAction(projectId: string, formData: FormData) {
   const location = String(formData.get("location") || "").trim() || null;
   const capacity = asInt(formData.get("capacity"));
   if (!startsValue || !endsValue || capacity < 1) redirect(`/projects/${projectId}/sessions/new?error=Please+complete+the+session+details.`);
+  if (startsValue.slice(0, 10) !== endsValue.slice(0, 10)) redirect(`/projects/${projectId}/sessions/new?error=The+session+must+start+and+end+on+the+same+date.`);
   const startsAt = localDateTimeToUtc(startsValue);
   const endsAt = localDateTimeToUtc(endsValue);
   if (endsAt <= startsAt) redirect(`/projects/${projectId}/sessions/new?error=The+end+time+must+be+after+the+start+time.`);
