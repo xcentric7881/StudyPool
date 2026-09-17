@@ -2,6 +2,8 @@
 
 StudyPool is a prototype experiment-participation system for matching students to studies, managing bookings and waiting lists, recording attendance, and tracking participation points.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/xcentric7881/StudyPool)
+
 This repository is deliberately the **prototype/test deployment**. It is configured for a free Render web service and a free Render Postgres database. **Use synthetic data only.** The Render free database expires after 30 days and has no backups.
 
 ## What is in the prototype
@@ -41,7 +43,7 @@ Open the site and choose one of these roles on the prototype sign-in screen. No 
 
 ## Deploy to Render
 
-The root `render.yaml` is a Render Blueprint. It creates:
+Click the **Deploy to Render** button above, review the free web service and free PostgreSQL database, and approve the Blueprint. The root `render.yaml` creates:
 
 1. a free Node web service in Frankfurt;
 2. a free PostgreSQL database in Frankfurt;
@@ -49,7 +51,7 @@ The root `render.yaml` is a Render Blueprint. It creates:
 4. schema synchronisation and prototype roster seeding on start;
 5. `/api/health` as the health check.
 
-In Render, create a new **Blueprint**, connect this GitHub repository, and approve the two resources. No application secrets are required for this prototype.
+No application secrets are required for this prototype.
 
 Render's free web service can sleep after inactivity and take roughly a minute to wake. The free Postgres database expires 30 days after creation. It is therefore suitable for this prototype, not for real participant data or operational deployment.
 
