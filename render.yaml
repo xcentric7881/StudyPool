@@ -1,3 +1,8 @@
+databases:
+  - name: studypool-prototype-db
+    plan: free
+    region: frankfurt
+
 services:
   - type: web
     name: studypool-prototype
@@ -9,7 +14,9 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
-        value: file:./studypool.db
+        fromDatabase:
+          name: studypool-prototype-db
+          property: connectionString
       - key: APP_TIMEZONE
         value: Europe/London
       - key: PROTOTYPE_MODE
