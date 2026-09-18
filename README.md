@@ -1,37 +1,51 @@
-# StudyPool — Render prototype
+# StudyPool
 
-StudyPool is a prototype experiment-participation system for matching students to studies, managing bookings and waiting lists, recording attendance, and tracking participation points.
+StudyPool is an experiment-participation system for a university research group. Staff create studies and sessions, students book or waitlist for places, attendance awards participation points, and administrators manage roster eligibility and academic-year targets.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/xcentric7881/StudyPool)
+The current repository is a working **prototype/test deployment**. Use synthetic/test participant data only.
 
-This repository is deliberately the **prototype/test deployment**. It is configured as a single free Render Node web service using a local SQLite database. **Use synthetic data only.** The SQLite file lives on Render's ephemeral filesystem, so prototype data can be lost when the service is redeployed or replaced.
+## Current prototype
 
-## What is in the prototype
+Implemented:
+- CSV-controlled roster with student, staff and admin roles;
+- PostgreSQL persistence through Prisma;
+- study creation and lifecycle;
+- multiple bookable sessions with capacity;
+- booking, cancellation reasons and waiting lists;
+- automatic waitlist promotion in the mail-free prototype;
+- attendance/no-show marking and participation points;
+- academic-year and cohort target configuration;
+- audit records for material actions;
+- synthetic demo sign-in;
+- Render deployment with a database-backed health check.
 
-- CSV-controlled roster with `student`, `staff`, and `admin` roles.
-- Four fixed synthetic demo identities provide one-click role switching for safe prototype testing.
-- Staff-owned studies with description, recruitment target, points (default 10), dates, and multiple sessions.
-- Session capacity, student booking, cancellation with retained reason, and waiting lists.
-- In this mail-free prototype, a cancelled confirmed place automatically promotes the first waiting-list participant.
-- Staff attendance/no-show marking; points are awarded only for attendance and can be corrected.
-- Academic years, cohort/global point targets, admin progress reports, and CSV export.
-- Audit records for important actions.
+The prototype deliberately does **not** yet provide production email claiming/password recovery/reminders.
 
-## Deliberate prototype simplifications
+## Important: shared database
 
-There is no email or real-user authentication service in this branch. To keep the temporary Render deployment safe and dependency-free:
+The PostgreSQL database may be shared with other applications. StudyPool must use its dedicated PostgreSQL schema:
 
-- no real credentials are collected; the login screen offers four fixed synthetic demo roles;
-- email ownership verification and password reset are omitted;
-- 3-day/day-of reminder emails are omitted;
-- waiting-list promotion is automatic rather than emailed/accepted;
-- PostgreSQL is replaced by SQLite for the temporary Render build.
+```text
+STUDYPOOL_DB_SCHEMA=studypool
+```
 
-The production design retains roster-based email claiming, password login, transactional reminders and PostgreSQL. These prototype changes do not alter the core Project / Session / Booking / points model.
+Do not run Prisma against another application's schema and never use `prisma db push --accept-data-loss` as a shortcut on the shared database.
 
-## Seeded test roster
+See [Deployment](docs/DEPLOYMENT.md).
 
-The Render start command idempotently seeds these **synthetic** identities:
+## Documentation for developers and coding agents
+
+Start with:
+- [AGENTS.md](AGENTS.md) — durable implementation constraints and working rules;
+- [Product decisions](docs/PRODUCT_DECISIONS.md) — intended behaviour and prototype exceptions;
+- [Architecture](docs/ARCHITECTURE.md) — application structure;
+- [Data model](docs/DATA_MODEL.md) — entities and invariants;
+- [Deployment](docs/DEPLOYMENT.md) — Render/PostgreSQL deployment;
+- [Roster CSV format](docs/CSV_FORMAT.md).
+
+## Synthetic demo accounts
+
+When `PROTOTYPE_MODE=true`, sign-in currently permits:
 
 | Email | Role |
 | --- | --- |
@@ -40,20 +54,18 @@ The Render start command idempotently seeds these **synthetic** identities:
 | `student1@studypool.test` | student |
 | `student2@studypool.test` | student |
 
-Open the site and choose one of these roles on the prototype sign-in screen. No password is required. The prototype also seeds academic year `2026/27` with a 100-point target.
+No password is required for these prototype-only identities.
 
-## Deploy to Render
-
-The root `render.yaml` creates one free Node web service in Frankfurt. It sets `DATABASE_URL=file:./studypool.db`, synchronises the schema with `prisma db push`, seeds the synthetic roster on start, and exposes `/api/health` for checking the deployment.
-
-No application secrets are required for this prototype. Render's free web service can sleep after inactivity and take roughly a minute to wake. The local SQLite database is intentionally disposable and is **not** suitable for real participant data or operational deployment.
+The seed script also creates additional synthetic roster data and example studies for testing.
 
 ## Local development
 
-Copy `.env.example` to `.env`, then:
+StudyPool uses PostgreSQL; the older SQLite prototype instructions are obsolete.
 
 ```bash
+cp .env.example .env
 npm install
+npx prisma generate
 npx prisma db push
 npm run prototype:seed
 npm run dev
@@ -61,9 +73,23 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+Use a local/test PostgreSQL instance in `.env`. Do not commit real database credentials.
+
+## Useful commands
+
+```bash
+npm run typecheck
+npm test
+npm run build
+npm run prototype:seed
+npm run roster:import
+```
+
 ## Roster CSV
 
-Admins can replace/update the roster through **Admin → Approved roster**. Example format:
+Admins can replace/update the roster through **Admin -> Approved roster**.
+
+Example:
 
 ```csv
 name,email,role,cohort
@@ -72,8 +98,22 @@ Rory Researcher,rory@example.test,staff,
 Sam Student,sam@example.test,student,2026
 ```
 
-A replacement roster makes omitted people inactive but retains their user/history. The importing admin must remain present as an admin. In this prototype, uploaded real roster entries are for testing administration/reporting only; only the four seeded synthetic identities can sign in.
+A roster replacement may deactivate omitted people, but their user and participation history is retained.
 
-## Production migration
+## Current hosted prototype
 
-The production target remains portable: Next.js + PostgreSQL. For deployment on the Mac Studio or UK-hosted infrastructure, restore verified email claiming, password authentication and reminders using a transactional email provider; keep PostgreSQL private; add backups; and complete the university data-protection/security review. Render's Frankfurt prototype should not be treated as the UK-resident production service.
+The Render service is `studypool-prototype`, deployed from `main`.
+
+Health check:
+
+```text
+https://studypool-prototype.onrender.com/api/health
+```
+
+Expected response:
+
+```json
+{"ok":true}
+```
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for deployment details and database-safety rules.
