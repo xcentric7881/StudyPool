@@ -25,7 +25,7 @@ start: npm run render:start
 
 `npm run render:start` runs `scripts/render-start.mjs`, which:
 1. reads `DATABASE_URL`;
-2. forces the configured PostgreSQL schema;
+2. applies the configured StudyPool database scope;
 3. runs `prisma db push`;
 4. runs the idempotent prototype seed;
 5. starts Next.js.
@@ -34,34 +34,44 @@ Next.js binds to `0.0.0.0:${PORT:-3000}`.
 
 Render currently supplies port 10000 at runtime. Do not hard-code it; use `PORT`.
 
-## Shared PostgreSQL database
+## Database safety
 
-The PostgreSQL instance is shared with other applications.
+Do not assume the deployment gives StudyPool exclusive ownership of the database or even of the containing PostgreSQL schema. Other applications may share either.
 
-StudyPool's namespace is:
+The deployment must therefore preserve an explicit ownership boundary:
+- prefer a dedicated schema/namespace where possible;
+- centralise scoping in configuration/database-access code;
+- operate only on known StudyPool-owned objects;
+- never modify unfamiliar tables merely because a schema tool detects them;
+- inspect destructive schema changes before applying them;
+- never use `prisma db push --accept-data-loss` or an equivalent force/destructive override.
+
+### Current deployment
+
+The present Render deployment uses:
 
 ```text
 STUDYPOOL_DB_SCHEMA=studypool
 ```
 
-Schema isolation is enforced in:
+That configured scope is enforced in:
 - `prisma.config.ts`;
 - `lib/db.ts`;
 - `scripts/render-start.mjs`.
 
-Do not remove that protection merely because `DATABASE_URL` already works.
+This is the current mechanism, not a reason for feature code to hard-code assumptions about database topology.
 
-### Never do this
+If a future deployment shares a schema, replace or extend the isolation mechanism appropriately while preserving the same rule: StudyPool may manage only its own objects.
 
-Do not resolve Prisma warnings by running:
+### Schema-management warning signs
 
-```bash
-prisma db push --accept-data-loss
-```
+Stop and investigate if Prisma proposes:
+- dropping tables not recognisably owned by StudyPool;
+- destructive changes unrelated to the intended model change;
+- changes to objects from another application;
+- broad destructive operations needed only to make `db push` succeed.
 
-against the shared database. Warnings that unrelated tables need dropping are a strong sign Prisma is pointed at the wrong schema.
-
-Healthy Prisma startup should explicitly report schema `studypool`.
+Do not bypass such warnings with `--accept-data-loss`.
 
 ## Health check
 
@@ -76,6 +86,8 @@ Expected response:
 A 503 here is an application/database deployment problem rather than merely a homepage/auth issue.
 
 ## Environment variables
+
+Current deployment:
 
 ```text
 DATABASE_URL=postgresql://...
@@ -100,14 +112,14 @@ npm run prototype:seed
 npm run dev
 ```
 
-The local connection in `.env` must point to a PostgreSQL instance you control. Prisma still scopes itself to `STUDYPOOL_DB_SCHEMA`.
+Use a local/test PostgreSQL environment you control. Keep the same ownership/encapsulation rules even in development.
 
 ## Deployment verification
 
 After a deployment:
 1. confirm the deployed commit is the intended `main` commit;
-2. inspect startup logs for `schema "studypool"`;
-3. confirm Prisma preparation completes;
+2. confirm the configured StudyPool database scope is the intended one;
+3. confirm Prisma preparation affects only StudyPool-owned objects;
 4. confirm prototype seed completes when enabled;
 5. confirm Next.js listens on `0.0.0.0:$PORT`;
 6. check `/api/health` returns `{"ok":true}`;

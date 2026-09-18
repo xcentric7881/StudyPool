@@ -99,18 +99,21 @@ Append-only record for material application actions: optional actor, action, ent
 
 Administrative history for roster replacements: filename, uploader, imported row count and timestamp.
 
-## PostgreSQL schema ownership
+## Database ownership boundary
 
-These models belong to PostgreSQL schema `studypool`, selected with `STUDYPOOL_DB_SCHEMA`.
+StudyPool may run in a database or schema that also contains objects belonging to other applications. The model therefore owns only the tables and relationships defined for StudyPool; it does not imply ownership of the surrounding database or schema.
 
-The physical database is shared with other applications. No StudyPool migration or Prisma command should assume ownership of `public` or another application's schema.
+Prefer a dedicated PostgreSQL schema/namespace where possible. The current deployment uses `STUDYPOOL_DB_SCHEMA`, defaulting to `studypool`.
+
+If a deployment shares a schema, schema-management operations must still be constrained to known StudyPool-owned objects. Unknown tables are not candidates for deletion or modification.
 
 ## Data-model change checklist
 
 When changing `schema.prisma`:
 1. classify the change as additive, transforming or destructive;
 2. preserve booking/attendance/cancellation/audit history;
-3. verify Prisma targets `studypool`;
-4. never use `--accept-data-loss` as a shortcut on the shared database;
-5. update this document and affected product decisions;
-6. run typecheck, tests and build.
+3. confirm the database operation is constrained to StudyPool-owned objects;
+4. inspect any proposed destructive change before applying it;
+5. never use `--accept-data-loss` or an equivalent destructive override;
+6. update this document and affected product decisions;
+7. run typecheck, tests and build.

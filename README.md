@@ -21,15 +21,17 @@ Implemented:
 
 The prototype deliberately does **not** yet provide production email claiming/password recovery/reminders.
 
-## Important: shared database
+## Important: database ownership
 
-The PostgreSQL database may be shared with other applications. StudyPool must use its dedicated PostgreSQL schema:
+StudyPool may run in a database or schema shared with other applications. Database access must therefore remain encapsulated and restricted to StudyPool-owned objects.
+
+A dedicated application schema/namespace is preferred where available. The current deployment uses:
 
 ```text
 STUDYPOOL_DB_SCHEMA=studypool
 ```
 
-Do not run Prisma against another application's schema and never use `prisma db push --accept-data-loss` as a shortcut on the shared database.
+Never use `prisma db push --accept-data-loss` or an equivalent destructive override to make schema synchronisation succeed. Unexpected destructive changes should be investigated, not forced.
 
 See [Deployment](docs/DEPLOYMENT.md).
 
@@ -40,7 +42,7 @@ Start with:
 - [Product decisions](docs/PRODUCT_DECISIONS.md) — intended behaviour and prototype exceptions;
 - [Architecture](docs/ARCHITECTURE.md) — application structure;
 - [Data model](docs/DATA_MODEL.md) — entities and invariants;
-- [Deployment](docs/DEPLOYMENT.md) — Render/PostgreSQL deployment;
+- [Deployment](docs/DEPLOYMENT.md) — deployment/database safety;
 - [Roster CSV format](docs/CSV_FORMAT.md).
 
 ## Synthetic demo accounts

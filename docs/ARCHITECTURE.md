@@ -21,7 +21,7 @@ Next.js App Router pages
          v
 PostgreSQL
   |
-  +--> schema: studypool
+  +--> configured StudyPool data scope
 ```
 
 ## Repository structure
@@ -35,12 +35,12 @@ PostgreSQL
 - `components/` — shared UI components.
 - `lib/actions/` — server-side mutations and business rules.
 - `lib/auth.ts` — session handling and role guards.
-- `lib/db.ts` — Prisma client and PostgreSQL schema scoping.
+- `lib/db.ts` — Prisma client and database scoping.
 - `lib/roster.ts` — roster CSV parsing/replacement.
 - `lib/waitlist.ts` — automatic waitlist promotion.
 - `lib/points.ts` — cohort/default target logic.
 - `prisma/schema.prisma` — application data model.
-- `prisma.config.ts` — Prisma CLI configuration and schema isolation.
+- `prisma.config.ts` — Prisma CLI configuration and database scoping.
 - `scripts/` — roster/seed/deployment scripts.
 - `tests/` — automated tests.
 
@@ -86,18 +86,25 @@ Cancelling keeps the booking row, records `CANCELLED`, timestamp and reason, res
 
 Staff owners or admins can record attendance/no-show state. `ATTENDED` awards the study's configured points. Reverting to `BOOKED` or marking `NO_SHOW` awards zero.
 
-## Database isolation
+## Database encapsulation
 
-The physical PostgreSQL database is shared by multiple applications. StudyPool therefore owns a PostgreSQL namespace rather than the entire database.
+StudyPool must not assume exclusive ownership of its database environment. The physical database and, in some deployments, the schema may contain data belonging to other applications.
 
-`STUDYPOOL_DB_SCHEMA` defaults to `studypool`.
+The architectural rule is therefore:
+- database ownership boundaries are explicit;
+- application code uses the central database access/configuration layer;
+- schema/table scoping is configured rather than assumed;
+- schema-management operations may touch only StudyPool-owned objects;
+- destructive override flags are not used.
 
-Three locations deliberately enforce this:
+A dedicated PostgreSQL schema is preferred where available. The current deployment uses `STUDYPOOL_DB_SCHEMA`, defaulting to `studypool`.
+
+Three locations currently enforce the configured scope:
 - `prisma.config.ts` for Prisma CLI commands;
 - `lib/db.ts` for runtime Prisma Client;
 - `scripts/render-start.mjs` for Render startup.
 
-Do not remove this duplication casually: it protects other applications sharing the database.
+If deployment topology changes, preserve the encapsulation boundary even if the specific schema mechanism changes.
 
 ## Time handling
 
