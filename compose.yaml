@@ -1,57 +1,19 @@
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: studypool
-      POSTGRES_USER: studypool
-      POSTGRES_PASSWORD: "${STUDYPOOL_DB_PASSWORD}"
-    volumes:
-      - studypool_postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U studypool -d studypool"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
-
   app:
     build: .
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: "3000"
-      DATABASE_URL: "postgresql://studypool:${STUDYPOOL_DB_PASSWORD}@db:5432/studypool"
+      DATABASE_URL: "${DATABASE_URL}"
       STUDYPOOL_DB_SCHEMA: studypool
       APP_TIMEZONE: Europe/London
       PROTOTYPE_MODE: "true"
     ports:
       - "127.0.0.1:3001:3000"
+    networks:
+      - studio-backend
 
-  backup:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      PGPASSWORD: "${STUDYPOOL_DB_PASSWORD}"
-    volumes:
-      - studypool_backups:/backups
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        set -eu
-        while true; do
-          pg_dump -h db -U studypool -d studypool -Fc -f "/backups/studypool-$$(date +%Y%m%d-%H%M%S).dump"
-          find /backups -type f -name 'studypool-*.dump' -mtime +14 -delete
-          sleep 86400
-        done
-
-volumes:
-  studypool_postgres:
-  studypool_backups:
+networks:
+  studio-backend:
+    external: true
