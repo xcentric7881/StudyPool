@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: "${DATABASE_URL}"
+      STUDYPOOL_DB_SCHEMA: studypool
+      APP_TIMEZONE: Europe/London
+      PROTOTYPE_MODE: "true"
+    ports:
+      - "127.0.0.1:3001:3000"
+    networks:
+      - studio-backend
+
+networks:
+  studio-backend:
+    external: true
