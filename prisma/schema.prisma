@@ -48,6 +48,7 @@ model User {
   rosterPersonId   String       @unique
   rosterPerson     RosterPerson @relation(fields: [rosterPersonId], references: [id])
   authSessions     AuthSession[]
+  emailCodes       EmailLoginCode[]
   projects         Project[]    @relation("ProjectOwner")
   bookings         Booking[]    @relation("StudentBookings")
   attendanceMarks  Booking[]    @relation("AttendanceMarker")
@@ -64,6 +65,20 @@ model AuthSession {
   expiresAt DateTime
   createdAt DateTime @default(now())
   @@index([userId])
+  @@index([expiresAt])
+}
+
+model EmailLoginCode {
+  id           String   @id @default(cuid())
+  email        String
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash     String
+  expiresAt    DateTime
+  attempts     Int      @default(0)
+  consumedAt   DateTime?
+  createdAt    DateTime @default(now())
+  @@index([email, createdAt])
   @@index([expiresAt])
 }
 
