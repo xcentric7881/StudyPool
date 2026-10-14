@@ -56,7 +56,7 @@ Authorization is enforced by server actions with `requireRole` plus ownership ch
 
 ### Intended production direction
 
-Access remains roster-controlled rather than open registration. The latest intended direction is that a person claims an email already present in the roster, verifies ownership through an emailed link, then uses an account login thereafter. The production mail/auth provider is not implemented in this prototype and should not be invented as part of unrelated work.
+Access remains roster-controlled rather than open registration. The email-code sign-in implementation exists on the separate `feature/email-otp-login` branch (see `docs/AUTHENTICATION.md`). Only active roster addresses are eligible; verified users receive a 30-day session. This has not been deployed to Render. The `main` prototype remains unchanged.
 
 A separate staff-approval state is not represented in the current Prisma model. If implemented, it should be modelled explicitly rather than inferred from UI state.
 
