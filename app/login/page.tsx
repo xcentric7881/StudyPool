@@ -1,37 +1,35 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import { demoLoginAction } from "@/lib/actions/auth-actions";
+import { requestEmailCodeAction, verifyEmailCodeAction } from "@/lib/actions/auth-actions";
 
-const accounts = [
-  { email: "admin@studypool.test", label: "Administrator", detail: "Roster, point targets and reports" },
-  { email: "staff@studypool.test", label: "Researcher", detail: "Create studies, sessions and mark attendance" },
-  { email: "student1@studypool.test", label: "Student 1", detail: "Browse, book, cancel and earn points" },
-  { email: "student2@studypool.test", label: "Student 2", detail: "Useful for capacity and wait-list testing" }
-];
-
-export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+type Params = Record<string, string | string[] | undefined>;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<Params> }) {
   if (await currentUser()) redirect("/dashboard");
   const p = await searchParams;
-  const error = typeof p.error === "string" ? p.error : null;
+  const email = typeof p.email === "string" ? p.email : "";
+  const error = typeof p.error === "string" ? p.error : "";
+  const sent = p.sent === "1";
   return (
     <main className="auth-wrap">
       <section className="card auth-card stack">
         <div>
           <div className="auth-logo">StudyPool</div>
-          <h1>Prototype sign in</h1>
-          <p className="muted">Choose a synthetic test role to explore the participation workflow.</p>
+          <h1>Sign in by email</h1>
+          <p className="muted">Use the email address on the approved StudyPool roster. No password is needed.</p>
         </div>
-        <div className="notice">Prototype only — no real participant data. Email verification, passwords and reminders are deliberately disabled in this Render build.</div>
-        {error && <div className="notice error">{error}</div>}
-        <div className="stack">
-          {accounts.map((account) => (
-            <form action={demoLoginAction} key={account.email} className="demo-account">
-              <input type="hidden" name="email" value={account.email} />
-              <div><strong>{account.label}</strong><div className="muted small">{account.detail}</div></div>
-              <button type="submit">Enter</button>
-            </form>
-          ))}
-        </div>
+        {error && <div className="notice error" role="alert">{error}</div>}
+        {sent && <div className="notice">If this address is approved, a six-digit verification code has been sent. It expires in 10 minutes.</div>}
+        <form action={requestEmailCodeAction} className="stack">
+          <label htmlFor="email">Email address</label>
+          <input id="email" type="email" name="email" required defaultValue={email} autoComplete="email" maxLength={254} />
+          <button type="submit">Send sign-in code</button>
+        </form>
+        {sent && <form action={verifyEmailCodeAction} className="stack">
+          <input type="hidden" name="email" value={email} />
+          <label htmlFor="code">Six-digit code</label>
+          <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required />
+          <button type="submit">Verify and sign in</button>
+        </form>}
       </section>
     </main>
   );
