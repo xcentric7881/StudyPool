@@ -36,18 +36,11 @@ The roster contains at least name, email, role, optional cohort and active/inact
 
 Replacing a roster may deactivate omitted people but must not delete their historical records.
 
-### Prototype exception
+### Email-only sign-in (feature branch)
 
-The current hosted prototype uses fixed synthetic demo identities and does not send email or collect real passwords.
+The `feature/email-otp-login` branch replaces prototype account selection with one-time email codes. Authentication is permitted only for active roster addresses, with roles retained centrally in the roster. Codes are six digits, valid for 10 minutes, single-use, and subject to attempt and sending limits. Sessions last up to 30 days. There is no password creation, password recovery or open registration.
 
-### Intended production direction
-
-The latest intended direction is:
-1. a person claims an email already present in the approved roster;
-2. an email link verifies ownership and allows account setup;
-3. the user subsequently signs in to the account.
-
-Mail provider, password recovery and production identity details remain implementation work rather than settled infrastructure choices.
+The current Render-hosted `main` prototype remains unchanged. Email-code login requires configured transactional email delivery and an additive database schema update; it is not deployed until separately approved.
 
 ## Studies
 
